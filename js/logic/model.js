@@ -94,13 +94,14 @@ export function itemFromOFF(p, sellerInput) {
   const n = p.nutriments || {};
   const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const kcal = n['energy-kcal_100g'] != null ? num(n['energy-kcal_100g']) : num(n.energy_100g) / 4.184;
-  const nut = round(fromArray([kcal, num(n.proteins_100g), num(n.fat_100g), num(n.carbohydrates_100g), num(n.fiber_100g), 0, num(n.salt_100g)]));
+  const hasEnergy = n['energy-kcal_100g'] != null || n.energy_100g != null;
+  const nut = hasEnergy ? round(fromArray([kcal, num(n.proteins_100g), num(n.fat_100g), num(n.carbohydrates_100g), num(n.fiber_100g), 0, num(n.salt_100g)])) : null;
   const options = [...GRAM_OPTIONS];
   const serving = Number(p.serving_quantity);
   if (serving > 0) options.unshift({ label: `1食分（${serving}g）`, f: serving / 100 });
   const pack = Number(p.product_quantity);
   if (pack > 0 && pack !== serving && pack <= 1000) options.push({ label: `1パック（${pack}g）`, f: pack / 100 });
-  const name = (p.product_name_de || p.product_name || p.product_name_en || '').trim();
+  const name = (p.product_name_de || p.product_name || p.product_name_en || p.product_name_ja || '').trim();
   const seller = (sellerInput || (p.brands || '').split(',')[0] || '').trim();
   return {
     key: productKey(name, seller), kind: 'product', name, seller, nut, options, base: '100g', source: 'off', offCode: p.code, brands: p.brands || '',

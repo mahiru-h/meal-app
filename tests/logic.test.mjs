@@ -215,3 +215,24 @@ test('麺類は個数で量を選ぶ', () => {
   assert.deepEqual(optionsFor(bag).main.map((x) => x.label), ['1/2袋', '1袋', '2袋']);
   assert.ok(bag.alt.includes('ラーメン'));
 });
+
+import { queryVariants } from '../js/off.js';
+
+test('日本語の商品検索', () => {
+  assert.deepEqual(queryVariants('さとうのごはん'), ['さとうのごはん', 'サトウのごはん', 'サトウノゴハン']);
+  assert.deepEqual(queryVariants('サトウのごはん'), ['サトウのごはん', 'さとうのごはん', 'サトウノゴハン']);
+  assert.deepEqual(queryVariants('Shin Ramyun'), ['Shin Ramyun']);
+  // ローマ字でも内蔵の「サトウのごはん」が候補に出る
+  const cat = buildCatalog(dishes, foods, []);
+  const cands = [...cat.values()].filter((i) => i.kind === 'product').map((p) => ({ key: p.key, text: p.name, alt: [p.seller, ...(p.alt || [])], item: p }));
+  const empty = { counts: new Map(), total: 0 };
+  assert.equal(rankCandidates('sato no gohan', cands, empty)[0].text, 'サトウのごはん');
+  assert.equal(rankCandidates('さとうのごはん', cands, empty)[0].text, 'サトウのごはん');
+});
+
+import { japaneseQuery } from '../js/off.js';
+
+test('日本語の検索式', () => {
+  const q = japaneseQuery('さとうのごはん');
+  assert.ok(q.includes('"サトウのごはん"') && q.includes('brands:"サトウ食品"'));
+});

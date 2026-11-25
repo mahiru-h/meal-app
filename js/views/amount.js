@@ -4,7 +4,7 @@ import { state, addEntries, saveItem, updateEntry } from '../store.js';
 import { timingLabel } from '../logic/prefs.js';
 import { entryFromItem } from '../logic/model.js';
 import { NUTRIENTS } from '../logic/nutrition.js';
-import { searchProducts } from '../off.js';
+import { searchProducts, fetchProduct, BusyError } from '../off.js';
 import { itemFromOFF, productKey, GRAM_OPTIONS, optionsFor } from '../logic/model.js';
 
 export function render(root, { date, timing, group }) {
@@ -91,15 +91,22 @@ export async function renderOFF(root, { date, timing, group }) {
     try {
       const list = await searchProducts(q.name, q.seller);
       mount(results, ...(list.length
-        ? list.map(({ p, title }) => {
-          const kcal = p.nutriments['energy-kcal_100g'] ?? p.nutriments.energy_100g / 4.184;
-          return h('button', { class: 'row-toggle', onclick: () => pick(itemFromOFF(p, q.seller)) },
-            h('span', { class: 'grow' }, h('span', { class: 'entry-name' }, title), h('span', { class: 'entry-sub' }, [p.brands, p.quantity].filter(Boolean).join('・'))),
-            h('span', { class: 'price' }, `${Math.round(kcal)} kcal/100g`));
-        })
-        : [h('p', { class: 'muted pad' }, '見つかりませんでした。商品名をドイツ語の表記に近づけるか、販売者名を入れて再検索してください。')]));
+        ? list.map(({ p, title, kcal }) => h('button', {
+          class: 'row-toggle',
+          onclick: async (ev) => {
+            let prod = p;
+            if (kcal == null) {
+              ev.currentTarget.classList.add('on');
+              prod = (await fetchProduct(p.code)) || p; // 検索結果に栄養がなければ詳細を取得
+            }
+            pick(itemFromOFF(prod, q.seller));
+          },
+        },
+        h('span', { class: 'grow' }, h('span', { class: 'entry-name' }, title), h('span', { class: 'entry-sub' }, [p.brands, p.quantity].filter(Boolean).join('・'))),
+        h('span', { class: 'price' }, kcal != null ? `${Math.round(kcal)} kcal/100g` : '栄養は選択時に取得')))
+        : [h('p', { class: 'muted pad' }, '見つかりませんでした。パッケージに書かれている表記（日本の商品は日本語、ドイツの商品はドイツ語）で再検索してください。販売者名を入れると絞り込めます。')]));
     } catch (e) {
-      mount(results, h('p', { class: 'muted pad' }, `検索できませんでした（${e.message}）。`));
+      mount(results, h('p', { class: 'muted pad' }, e instanceof BusyError ? e.message : `検索できませんでした（${e.message}）。`));
     }
   };
 
@@ -111,7 +118,7 @@ export async function renderOFF(root, { date, timing, group }) {
   mount(root, 
     header('商品を探す', { back }),
     h('section', { class: 'card' },
-      h('p', { class: 'small muted' }, 'Open Food Facts（無料の食品データベース）で検索します。大まかな商品名で構いません。'),
+      h('p', { class: 'small muted' }, 'Open Food Facts（無料の食品データベース）で検索します。大まかな商品名で構いません。日本の商品は日本語（ひらがな・カタカナどちらでも可）で探せます。'),
       h('div', { class: 'grid2' }, nameInput, sellerInput),
       h('button', { class: 'btn primary wide', onclick: run }, '再検索')),
     results,
