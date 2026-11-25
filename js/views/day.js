@@ -1,5 +1,5 @@
 // 日の画面: 食事タイミングの選択と、その日の記録・栄養
-import { h, go, header, fmtDate, toast } from '../ui.js';
+import { h, mount, go, header, fmtDate, toast } from '../ui.js';
 import { state, entriesOn, addEntries } from '../store.js';
 import { addDays } from '../logic/dates.js';
 import { TIMINGS } from '../logic/prefs.js';
@@ -59,7 +59,7 @@ export function render(root, { date }) {
       es.length ? h('div', { class: 'entries' }, es.map(entryRow)) : null);
   });
 
-  root.replaceChildren(
+  mount(root, 
     header(fmtDate(date, true), {
       back: '#/',
       right: h('span', { class: 'row' },

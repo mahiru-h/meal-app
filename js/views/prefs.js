@@ -1,5 +1,5 @@
 // 好み設定（テンプレート）
-import { h, go, header, toast } from '../ui.js';
+import { h, mount, go, header, toast } from '../ui.js';
 import { getActivePrefs, setTodayPrefs, saveTemplate } from '../store.js';
 import { AREAS, CUISINES, FOODS } from '../logic/prefs.js';
 
@@ -55,7 +55,7 @@ export async function render(root) {
     })),
     h('p', { class: 'small muted' }, `テンプレート: ${(template[key] || []).map((id) => options.find((o) => o.id === id)?.label).filter(Boolean).join('、') || 'なし'}`));
 
-  root.replaceChildren(
+  mount(root, 
     header('好み設定'),
     h('div', { class: 'pad' }, h('button', {
       class: 'btn huge primary',

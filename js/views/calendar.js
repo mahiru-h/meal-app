@@ -1,5 +1,5 @@
 // カレンダー（月）
-import { h, go, nav, fmtDate } from '../ui.js';
+import { h, mount, go, nav, fmtDate } from '../ui.js';
 import { state, entriesOn } from '../store.js';
 import { monthGrid, toKey } from '../logic/dates.js';
 import { TIMINGS } from '../logic/prefs.js';
@@ -40,7 +40,7 @@ export function render(root) {
   const todayTotal = sumEntries(entriesOn(today));
   const target = dailyTargets(state.settings).kcal;
 
-  root.replaceChildren(
+  mount(root, 
     h('header', { class: 'top' },
       h('button', { class: 'back', onclick: () => shift(-1), 'aria-label': '前の月' }, '‹'),
       h('h1', null, `${cur.y}年 ${cur.m + 1}月`),

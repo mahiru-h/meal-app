@@ -23,6 +23,11 @@ function append(el, children) {
   }
 }
 
+/** 子要素を入れ替える（配列は展開し、null / false は無視する） */
+export function mount(el, ...children) {
+  el.replaceChildren(...children.flat(Infinity).filter((c) => c != null && c !== false));
+}
+
 export function go(hash) {
   if (location.hash === hash) window.dispatchEvent(new HashChangeEvent('hashchange'));
   else location.hash = hash;

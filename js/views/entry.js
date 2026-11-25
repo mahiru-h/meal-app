@@ -1,5 +1,5 @@
 // in Home / others の入力画面
-import { h, go, header, fmtDate, nav, toast } from '../ui.js';
+import { h, mount, go, header, fmtDate, nav, toast } from '../ui.js';
 import { state } from '../store.js';
 import { timingLabel } from '../logic/prefs.js';
 import { toKey } from '../logic/dates.js';
@@ -96,7 +96,7 @@ export function render(root, { date, timing, group }) {
     activeField = field;
     const list = sources[field]();
     if (!list.length) { dropdown.hidden = true; return; }
-    dropdown.replaceChildren(...list.map((c) => h('button', {
+    mount(dropdown, ...list.map((c) => h('button', {
       class: 'dd-item',
       onpointerdown: (ev) => ev.preventDefault(), // フォーカスを外さない
       onclick: () => choose(field, c),
@@ -188,7 +188,7 @@ export function render(root, { date, timing, group }) {
       rows.length ? rows : h('p', { class: 'muted small span2' }, '記録が増えると、ここに履歴と、このタイミングでよく食べるものが並びます'));
   }
 
-  root.replaceChildren(
+  mount(root, 
     header(`${fmtDate(date)} ${timingLabel(timing)}・${group === 'home' ? 'in Home' : 'others'}`, { back: `#/add/${date}/${timing}` }),
     h('section', { class: 'grid2 inputs' },
       input('product', '商品名', '例 Spaghetti'),

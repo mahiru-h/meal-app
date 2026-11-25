@@ -1,5 +1,5 @@
 // おすすめの食事
-import { h, go, header, toast } from '../ui.js';
+import { h, mount, go, header, toast } from '../ui.js';
 import { state, entriesOn, addEntries, saveItem, getActivePrefs } from '../store.js';
 import { toKey, addDays, isoWeek, isWeekend } from '../logic/dates.js';
 import { TIMINGS, MOODS, CUISINES, AREAS, FOODS, timingLabel } from '../logic/prefs.js';
@@ -99,7 +99,7 @@ export async function render(root) {
     }, '別の候補を出す'));
 
   const label = (list, id) => list.find((x) => x.id === id)?.label || id;
-  root.replaceChildren(
+  mount(root, 
     header('おすすめの食事'),
     h('section', { class: 'card' },
       h('div', { class: 'row between' },

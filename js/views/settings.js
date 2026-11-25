@@ -1,5 +1,5 @@
 // 設定
-import { h, header, toast, shareFile } from '../ui.js';
+import { h, mount, header, toast, shareFile } from '../ui.js';
 import { state, saveSettings, saveItems } from '../store.js';
 import { MODES, dailyTargets } from '../logic/nutrition.js';
 import { EXCLUSIONS } from '../logic/prefs.js';
@@ -37,7 +37,7 @@ export async function render(root) {
   });
   const importLog = h('pre', { class: 'small muted' });
 
-  root.replaceChildren(
+  mount(root, 
     header('設定'),
     h('section', { class: 'card' },
       h('h2', null, '栄養バランスのモード'),

@@ -1,5 +1,5 @@
 // 記録の編集・削除
-import { h, go, header, fmtDate, nav, toast, confirmButton } from '../ui.js';
+import { h, mount, go, header, fmtDate, nav, toast, confirmButton } from '../ui.js';
 import { state, updateEntry, deleteEntries } from '../store.js';
 import { TIMINGS, timingLabel } from '../logic/prefs.js';
 import { NUTRIENTS } from '../logic/nutrition.js';
@@ -22,7 +22,7 @@ export function render(root, { id }) {
     },
   }, t.label)));
 
-  root.replaceChildren(
+  mount(root, 
     header('記録の編集', { back: `#/day/${e.date}` }),
     h('section', { class: 'card' },
       h('div', { class: 'entry-name big' }, e.name),

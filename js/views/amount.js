@@ -1,5 +1,5 @@
 // 量の選択 → 記録
-import { h, go, header, fmtDate, nav, toast } from '../ui.js';
+import { h, mount, go, header, fmtDate, nav, toast } from '../ui.js';
 import { state, addEntries, saveItem, updateEntry } from '../store.js';
 import { timingLabel } from '../logic/prefs.js';
 import { entryFromItem } from '../logic/model.js';
@@ -36,7 +36,7 @@ export function render(root, { date, timing, group }) {
     ? NUTRIENTS.filter((n) => ['kcal', 'protein', 'fat', 'carbs', 'salt'].includes(n.key)).map((n) => `${n.label} ${item.nut[n.key].toFixed(n.digits)}${n.unit}`).join(' / ')
     : '栄養はまだ取得していません（オンライン時に商品を選び直せます）';
 
-  root.replaceChildren(
+  mount(root, 
     header(editing ? '量を変更' : `${fmtDate(date)} ${timingLabel(timing)}`, { back: editing ? `#/edit/${editing.id}` : `#/entry/${date}/${timing}/${group}` }),
     h('section', { class: 'card' },
       h('div', { class: 'entry-name big' }, item.kind === 'dish' ? item.menuName || item.dishType : item.name),
@@ -79,10 +79,10 @@ export async function renderOFF(root, { date, timing, group }) {
     q.name = nameInput.value.trim();
     q.seller = sellerInput.value.trim();
     if (!q.name) return;
-    results.replaceChildren(h('p', { class: 'muted pad' }, '検索しています…'));
+    mount(results, h('p', { class: 'muted pad' }, '検索しています…'));
     try {
       const list = await searchProducts(q.name, q.seller);
-      results.replaceChildren(...(list.length
+      mount(results, ...(list.length
         ? list.map(({ p, title }) => {
           const kcal = p.nutriments['energy-kcal_100g'] ?? p.nutriments.energy_100g / 4.184;
           return h('button', { class: 'row-toggle', onclick: () => pick(itemFromOFF(p, q.seller)) },
@@ -91,7 +91,7 @@ export async function renderOFF(root, { date, timing, group }) {
         })
         : [h('p', { class: 'muted pad' }, '見つかりませんでした。商品名をドイツ語の表記に近づけるか、販売者名を入れて再検索してください。')]));
     } catch (e) {
-      results.replaceChildren(h('p', { class: 'muted pad' }, `検索できませんでした（${e.message}）。`));
+      mount(results, h('p', { class: 'muted pad' }, `検索できませんでした（${e.message}）。`));
     }
   };
 
@@ -100,7 +100,7 @@ export async function renderOFF(root, { date, timing, group }) {
     onclick: () => pick({ key: productKey(nameInput.value.trim(), sellerInput.value.trim()), kind: 'product', name: nameInput.value.trim(), seller: sellerInput.value.trim(), nut: null, options: GRAM_OPTIONS, base: '100g', source: 'user' }),
   }, '見つからないので栄養なしで記録（後で設定）');
 
-  root.replaceChildren(
+  mount(root, 
     header('商品を探す', { back }),
     h('section', { class: 'card' },
       h('p', { class: 'small muted' }, 'Open Food Facts（無料の食品データベース）で検索します。大まかな商品名で構いません。'),

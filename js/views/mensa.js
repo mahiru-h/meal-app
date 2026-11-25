@@ -1,5 +1,5 @@
 // in Mensa（昼食のみ）
-import { h, go, header, fmtDate, toast, nav } from '../ui.js';
+import { h, mount, go, header, fmtDate, toast, nav } from '../ui.js';
 import { addEntries, deleteEntries, state } from '../store.js';
 import { getMensaDay, sync } from '../sync.js';
 import { mainsForDay, shouldOfferSides, matchPrice, describeCombo, fmtPrice } from '../logic/mensa.js';
@@ -13,7 +13,7 @@ export async function render(root, { date }) {
   nav.state.replacePendingId = null;
   let day = await getMensaDay(date);
   if (!day && navigator.onLine) {
-    root.replaceChildren(header(`${fmtDate(date)} in Mensa`, { back: `#/add/${date}/lunch` }), h('p', { class: 'muted pad' }, 'メニューを確認しています…'));
+    mount(root, header(`${fmtDate(date)} in Mensa`, { back: `#/add/${date}/lunch` }), h('p', { class: 'muted pad' }, 'メニューを確認しています…'));
     await sync();
     day = await getMensaDay(date);
   }
@@ -57,7 +57,7 @@ export async function render(root, { date }) {
   };
 
   if (!day) {
-    root.replaceChildren(
+    mount(root, 
       header(`${fmtDate(date)} in Mensa`, { back: `#/add/${date}/lunch` }),
       h('p', { class: 'card muted' }, navigator.onLine ? 'この日のメニューはありません（休業日・未公開の可能性があります）。' : 'オフラインのため、この日のメニューがまだ端末にありません。'),
       juiceOnly(),
@@ -79,7 +79,7 @@ export async function render(root, { date }) {
     const offer = shouldOfferSides(selectedMains);
     if (!offer) sel.sides.clear();
     const sides = day.sides || [];
-    sidesWrap.replaceChildren(offer && sides.length
+    mount(sidesWrap, offer && sides.length
       ? h('section', { class: 'card' },
         h('h2', null, `付け合わせ（${fmtPrice(sides[0].price)}）`),
         h('div', { class: 'list' }, sides.map((s) => toggleRow(s.id, s.name, s.nameDe !== s.name ? s.nameDe : '', s.price, sel.sides, refresh))))
@@ -100,7 +100,7 @@ export async function render(root, { date }) {
     h('span', { class: 'grow' }, h('span', { class: 'entry-name' }, JUICE.name), h('span', { class: 'entry-sub' }, JUICE.note)),
     h('span', { class: 'price' }, fmtPrice(JUICE.price)));
 
-  root.replaceChildren(
+  mount(root, 
     header(`${fmtDate(date)} in Mensa`, { back: `#/add/${date}/lunch` }),
     h('section', { class: 'card' }, h('div', { class: 'list' }, juiceRow)),
     h('section', { class: 'card' },
@@ -138,7 +138,7 @@ export async function renderPending(root, { id }) {
   if (!e) return go('#/');
   const day = await getMensaDay(e.date);
   const combos = day ? matchPrice(day, e.price) : [];
-  root.replaceChildren(
+  mount(root, 
     header(`照合待ち ${fmtPrice(e.price)}`, { back: `#/day/${e.date}` }),
     h('p', { class: 'pad muted' }, `${fmtDate(e.date)} の昼食（in Mensa）`),
     day
