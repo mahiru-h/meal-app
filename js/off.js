@@ -67,7 +67,13 @@ async function fetchJson(url, ms = 8000) {
 // ※ 従来の cgi/search.pl は github.io 上のアプリからの通信を受け付けない（すぐに Load failed になる）ため使わない
 async function searchNew(q) {
   const j = await fetchJson(`https://search.openfoodfacts.org/search?${new URLSearchParams({ q, page_size: '30', fields: FIELDS })}`);
-  return j ? j.hits || [] : null;
+  return j ? (j.hits || []).map(normalizeHit) : null;
+}
+
+/** 新しい API では brands などが配列（"xx:knorr" のような接頭辞つき）で返るため、文字列にそろえる */
+export function normalizeHit(p) {
+  const str = (v) => (Array.isArray(v) ? v.join(', ') : String(v || '')).replace(/(^|,\s*)[a-z]{2}:/g, '$1');
+  return { ...p, brands: str(p.brands), stores: str(p.stores) };
 }
 
 /** 日本語: 商品名とブランド名の両方を、表記ゆれも含めて 1 回で検索する */

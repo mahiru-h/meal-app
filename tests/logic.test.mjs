@@ -236,3 +236,12 @@ test('日本語の検索式', () => {
   const q = japaneseQuery('さとうのごはん');
   assert.ok(q.includes('"サトウのごはん"') && q.includes('brands:"サトウ食品"'));
 });
+
+import { normalizeHit } from '../js/off.js';
+
+test('新しい検索 API の形式をそろえる', () => {
+  const p = normalizeHit({ brands: ['xx:knorr', 'xx:Unilever'], stores: undefined });
+  assert.equal(p.brands, 'knorr, Unilever');
+  assert.equal(p.stores, '');
+  assert.equal(normalizeHit({ brands: 'Nongshim' }).brands, 'Nongshim');
+});
