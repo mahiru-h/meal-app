@@ -245,3 +245,29 @@ test('新しい検索 API の形式をそろえる', () => {
   assert.equal(p.stores, '');
   assert.equal(normalizeHit({ brands: 'Nongshim' }).brands, 'Nongshim');
 });
+
+import { resolveDish, findCategory } from '../js/logic/model.js';
+
+test('卵料理は卵の個数で選ぶ・料理名の欄の献立名も判定する', () => {
+  const cat = buildCatalog(dishes, foods, []);
+  const items = [...cat.values()].filter((i) => i.kind === 'dish');
+  // 料理名の欄に「ゆで卵」
+  const boiled = resolveDish(dishes, items, 'ゆで卵', '');
+  assert.equal(boiled.menuName, 'ゆで卵');
+  assert.equal(boiled.dishType, '卵料理');
+  assert.deepEqual(boiled.options.map((o) => o.label), ['卵1個', '卵2個', '卵3個', '卵4個']);
+  assert.ok(boiled.nut.kcal < 100);
+  // 料理名「卵料理」だけでも卵 1 個あたり
+  const egg = resolveDish(dishes, items, '卵料理', '');
+  assert.equal(egg.options[0].label, '卵1個');
+  assert.ok(egg.nut.kcal <= 100);
+  // カテゴリ名ではない料理名は献立名として扱い、別名でカテゴリを判定
+  const fried = resolveDish(dishes, items, 'スクランブルエッグ', '');
+  assert.equal(fried.dishType, '卵料理');
+  assert.equal(fried.menuName, 'スクランブルエッグ');
+  assert.equal(findCategory(dishes, '鮭の塩焼き').name, '魚料理');
+  assert.equal(findCategory(dishes, 'よくわからない').name, 'その他');
+  // 既存の献立・料理名のみ
+  assert.equal(resolveDish(dishes, items, 'パスタ', '和風ツナパスタ').nut.kcal, 620);
+  assert.equal(resolveDish(dishes, items, 'パスタ', '').dishType, 'パスタ');
+});

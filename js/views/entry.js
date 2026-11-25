@@ -4,7 +4,7 @@ import { state } from '../store.js';
 import { timingLabel } from '../logic/prefs.js';
 import { toKey } from '../logic/dates.js';
 import { normalize, matchScore, countBy, entryKey, rankCandidates, recentUnique, timingRanking } from '../logic/suggest.js';
-import { productKey, dishKey, newDishItem, categoryItem, findCategory, GRAM_OPTIONS } from '../logic/model.js';
+import { productKey, resolveDish, GRAM_OPTIONS } from '../logic/model.js';
 
 const DEFAULT_SELLERS = ['Rewe', 'GoAsia', 'Lidl', 'Aldi', 'Edeka', 'Netto', 'Penny', 'Kaufland', 'dm', 'Rossmann'];
 
@@ -12,10 +12,11 @@ const DEFAULT_SELLERS = ['Rewe', 'GoAsia', 'Lidl', 'Aldi', 'Edeka', 'Netto', 'Pe
 export function itemForEntry(e) {
   const key = entryKey(e);
   const found = state.catalog.get(key);
-  if (found) return found;
+  if (found && !found.estimated) return found;
   if (e.type === 'dish') {
-    const base = newDishItem(state.dishes, e.dishType, e.menuName);
-    return e.nut && e.factor ? { ...base, nut: Object.fromEntries(Object.entries(e.nut).map(([k, v]) => [k, v / e.factor])) } : base;
+    // 概算の品目は最新の既定値で解決し直す（例: 料理名「ゆで卵」→ 卵料理の「ゆで卵」）
+    const dishItems = [...state.catalog.values()].filter((i) => i.kind === 'dish');
+    return { ...resolveDish(state.dishes, dishItems, e.dishType, e.menuName), lastOption: found?.lastOption };
   }
   return {
     key, kind: 'product', name: e.product, seller: e.seller || '', source: 'user',
@@ -151,14 +152,10 @@ export function render(root, { date, timing, group }) {
       return openAmount({ key: productKey(product, seller), kind: 'product', name: product, seller, nut: null, options: GRAM_OPTIONS, base: '100g', source: 'user' });
     }
     if (menuName || dishType) {
-      const key = dishKey(dishType || findCategory(state.dishes, dishType).name, menuName);
-      const exact = state.catalog.get(key) || dishItems.find((d) => d.key === key);
-      if (exact) return openAmount(exact);
-      if (menuName && !dishType) {
-        const sameName = dishItems.filter((d) => normalize(d.menuName) === normalize(menuName));
-        if (sameName.length) return openAmount(sameName[0]);
-      }
-      return openAmount(menuName ? newDishItem(state.dishes, dishType, menuName) : categoryItem(state.dishes, dishType));
+      const item = resolveDish(state.dishes, dishItems, dishType, menuName);
+      const saved = state.catalog.get(item.key);
+      // 以前の概算値で保存された品目は、最新の既定値で作り直す（量の記憶だけ引き継ぐ）
+      return openAmount(saved && !saved.estimated ? saved : { ...item, lastOption: saved?.lastOption });
     }
     toast('商品名、または料理名・献立名を入力してください');
   };

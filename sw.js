@@ -1,6 +1,6 @@
 // Service Worker: アプリ本体は端末にキャッシュしてオフラインでも起動できるようにする
 // アプリを更新したら VERSION を変える（js/version.js も合わせる）
-const VERSION = 'v1.0.6';
+const VERSION = 'v1.0.7';
 const CACHE = `meal-app-${VERSION}`;
 const SHELL = [
   './',

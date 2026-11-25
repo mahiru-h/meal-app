@@ -12,14 +12,44 @@ export const GRAM_OPTIONS = [
   { label: '200g', f: 2 },
 ];
 
-/** 料理名（カテゴリ）を探す。なければ「その他」 */
-export function findCategory(dishes, dishType) {
-  const q = normalize(dishType);
-  return (
-    dishes.categories.find((c) => normalize(c.name) === q) ||
-    dishes.categories.find((c) => q && normalize(c.name).includes(q)) ||
-    dishes.categories.find((c) => c.name === 'その他')
-  );
+export const stripParen = (s) => String(s || '').replace(/[（(][^）)]*[）)]/g, '').trim();
+
+/** 料理名（カテゴリ）を探す。名前の一致 → 別名を含むか → 「その他」 */
+export function findCategory(dishes, text) {
+  const q = normalize(text);
+  if (q) {
+    const exact = dishes.categories.find((c) => normalize(c.name) === q);
+    if (exact) return exact;
+    const byAlt = dishes.categories.find((c) => c.name !== 'その他' && [c.name, ...(c.alt || [])].some((a) => q.includes(normalize(a))));
+    if (byAlt) return byAlt;
+  }
+  return dishes.categories.find((c) => c.name === 'その他');
+}
+
+export const isCategoryName = (dishes, text) => dishes.categories.some((c) => normalize(c.name) === normalize(text));
+
+/**
+ * 料理名・献立名の入力から品目を決める（自炊・others の料理）。
+ * 1. 既知の献立（概算ではないもの）に一致すればそれ
+ * 2. 料理名の欄に献立名（例「ゆで卵」）が入っていれば、その献立
+ * 3. それ以外は料理名（別名でも判定）の既定値で新しい献立を作る
+ *    料理名の欄がカテゴリ名でない場合（例「目玉焼き」）は、それを献立名として扱う
+ */
+export function resolveDish(dishes, dishItems, dishType, menuName) {
+  const dt = String(dishType || '').trim();
+  const mn = String(menuName || '').trim();
+  const nm = (x) => normalize(stripParen(x));
+  const known = dishItems.filter((d) => !d.estimated && d.menuName);
+  if (mn) {
+    const same = known.filter((d) => nm(d.menuName) === nm(mn));
+    const hit = same.find((d) => !dt || nm(d.dishType) === nm(dt)) || (!dt || !isCategoryName(dishes, dt) ? same[0] : null);
+    if (hit) return hit;
+    return newDishItem(dishes, isCategoryName(dishes, dt) ? dt : findCategory(dishes, dt || mn).name, mn);
+  }
+  if (isCategoryName(dishes, dt)) return categoryItem(dishes, dt);
+  const asMenu = known.find((d) => nm(d.menuName) === nm(dt));
+  if (asMenu) return asMenu;
+  return newDishItem(dishes, findCategory(dishes, dt).name, dt);
 }
 
 /** シードデータ + 端末に保存した品目 → key → item の Map */
