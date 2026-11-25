@@ -197,6 +197,8 @@ div.stack:has(> .btn.huge) { padding: 14px; }
 .option { min-height: 64px; font-size: 17px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .option small { font-weight: 400; color: var(--muted); font-size: 12px; }
 .option.last { border-color: var(--accent); }
+.more-options summary { color: var(--accent); font-size: 14px; padding: 8px 0; }
+.more-options .options { padding: 6px 0; }
 .nut-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
 .nut-grid div { display: flex; flex-direction: column; }
 

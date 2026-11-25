@@ -183,7 +183,35 @@ test('カタログと記録', () => {
   assert.equal(e.nut.kcal, Math.round(620 * 1.45));
   assert.equal(entryKey(e), item.key);
   const nd = newDishItem(dishes, 'ラーメン', '味噌ラーメン');
-  assert.equal(nd.options[0].label, '1袋');
+  assert.ok(nd.options.some((o) => o.label === '1袋'));
   const other = newDishItem(dishes, '', '謎の料理');
   assert.equal(other.dishType, 'その他');
+});
+
+import { noodleKind, parsePackGrams, optionsFor, itemFromOFF, GRAM_OPTIONS } from '../js/logic/model.js';
+
+test('麺類は個数で量を選ぶ', () => {
+  assert.equal(parsePackGrams('5 x 120 g'), 120);
+  assert.equal(parsePackGrams('65g'), 65);
+  assert.equal(parsePackGrams('', 600), null); // 複数入りの総量は使わない
+  assert.equal(noodleKind({ name: 'Shin Ramyun', brands: 'Nongshim' }), 'bag');
+  assert.equal(noodleKind({ name: 'Cup Noodles Chicken', brands: 'Nissin' }), 'cup');
+  assert.equal(noodleKind({ name: 'Spaghetti', brands: 'Barilla' }), null);
+  assert.equal(noodleKind({ name: 'ラーメン' }), 'bag');
+
+  const off = itemFromOFF({ code: '1', product_name: 'Shin Ramyun', brands: 'Nongshim', quantity: '5 x 120 g', product_quantity: 600, nutriments: { 'energy-kcal_100g': 420 } }, 'GoAsia');
+  const o = optionsFor(off);
+  assert.deepEqual(o.main.map((x) => x.label), ['1/2袋（60g）', '1袋（120g）', '2袋（240g）']);
+  assert.equal(o.main[1].f, 1.2);
+  assert.ok(o.more.length > 0);
+
+  // 内容量が不明（以前に保存した品目や手入力）なら袋・カップの大きさから選ぶ
+  const unknown = optionsFor({ kind: 'product', name: 'ラーメン', options: GRAM_OPTIONS, source: 'user' });
+  assert.equal(unknown.main[0].label, '袋麺 1袋（約100g）');
+  // 麺類以外・シードはそのまま
+  assert.equal(optionsFor({ kind: 'product', name: 'Skyr', options: GRAM_OPTIONS, source: 'off' }).main, GRAM_OPTIONS);
+  const cat = buildCatalog(dishes, foods, []);
+  const bag = [...cat.values()].find((i) => i.name.startsWith('袋麺'));
+  assert.deepEqual(optionsFor(bag).main.map((x) => x.label), ['1/2袋', '1袋', '2袋']);
+  assert.ok(bag.alt.includes('ラーメン'));
 });

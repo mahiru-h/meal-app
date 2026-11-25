@@ -64,7 +64,7 @@ export function render(root, { date, timing, group }) {
         const filtered = list.filter((p) => matchScore(draft.seller, p.seller) > 0.3);
         if (filtered.length) list = filtered;
       }
-      return rankCandidates(draft.product, list.map((p) => ({ key: p.key, text: p.name, alt: [p.seller], sub: p.seller, item: p, seed: p.source === 'seed' })), freqItem);
+      return rankCandidates(draft.product, list.map((p) => ({ key: p.key, text: p.name, alt: [p.seller, ...(p.alt || [])], sub: p.seller, item: p, seed: p.source === 'seed' })), freqItem);
     },
     seller: () => {
       const names = new Map();

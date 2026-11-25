@@ -34,7 +34,7 @@ export function buildCatalog(dishes, foods, saved = []) {
   }
   for (const f of foods.items) {
     const key = productKey(f.name, f.seller);
-    map.set(key, { key, kind: 'product', name: f.name, seller: f.seller || '', nut: fromArray(f.per100), options: f.options || GRAM_OPTIONS, base: f.perLabel || '100g', source: 'seed' });
+    map.set(key, { key, kind: 'product', name: f.name, seller: f.seller || '', alt: f.alt || [], nut: fromArray(f.per100), options: f.options || GRAM_OPTIONS, base: f.perLabel || '100g', source: 'seed' });
   }
   for (const it of saved) map.set(it.key, it);
   return map;
@@ -102,7 +102,11 @@ export function itemFromOFF(p, sellerInput) {
   if (pack > 0 && pack !== serving && pack <= 1000) options.push({ label: `1パック（${pack}g）`, f: pack / 100 });
   const name = (p.product_name_de || p.product_name || p.product_name_en || '').trim();
   const seller = (sellerInput || (p.brands || '').split(',')[0] || '').trim();
-  return { key: productKey(name, seller), kind: 'product', name, seller, nut, options, base: '100g', source: 'off', offCode: p.code, brands: p.brands || '' };
+  return {
+    key: productKey(name, seller), kind: 'product', name, seller, nut, options, base: '100g', source: 'off', offCode: p.code, brands: p.brands || '',
+    categories: (p.categories_tags || []).join(' '),
+    packG: parsePackGrams(p.quantity, p.product_quantity),
+  };
 }
 
 let counter = 0;
@@ -149,4 +153,72 @@ export function mensaEntries({ date, mains = [], sides = [], juice = false, auto
 
 export function pendingMensaEntry(date, price) {
   return { id: newId(), date, timing: 'lunch', group: 'mensa', type: 'pending', name: `Mensa（€${Number(price).toFixed(2)}・照合待ち）`, price: Number(price), nut: null, status: 'pending', createdAt: Date.now() };
+}
+
+/* ---------- 麺類（袋麺・カップ麺・うどん）は個数で選ぶ ---------- */
+
+const NOODLE_RE = /ramen|ラーメン|らーめん|ramyun|ramyeon|instant|yakisoba|焼きそば|udon|うどん|soba|そば|pho|\bmie\b|cup ?noodle|カップ|袋麺|nissin|indomie|nongshim|samyang|buldak|yum ?yum|mama|nudelsuppe|noodle|asia ?nudel|instant-noodles/i;
+const PASTA_RE = /spaghetti|penne|fusilli|farfalle|lasagne|tagliatelle|linguine|maccheroni|makkaroni|bandnudeln|spätzle|pasta|パスタ|スパゲッティ/i;
+
+/** 麺類の形: 'bag'（袋）| 'cup'（カップ）| 'tama'（玉）| null（麺類ではない） */
+export function noodleKind(item) {
+  const text = [item.name, item.brands, item.categories].filter(Boolean).join(' ');
+  if (PASTA_RE.test(text) && !/instant|ramen|asia|cup/i.test(text)) return null;
+  if (!NOODLE_RE.test(text)) return null;
+  if (/udon|うどん/i.test(text) && !/instant|cup|カップ/i.test(text)) return 'tama';
+  if (/\bcup\b|becher|bowl|カップ|cup-noodles|\btopf\b/i.test(text)) return 'cup';
+  return 'bag';
+}
+
+/**
+ * 1 個（1 袋）あたりのグラム数。不明なら null。
+ * "5 x 120 g" → 120、"120 g" → 120、product_quantity のみ → その値（250 g 超は複数入りとみなして不明）
+ */
+export function parsePackGrams(quantity, productQuantity) {
+  const q = String(quantity || '').replace(',', '.');
+  let m = q.match(/(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*g\b/i);
+  if (m) return Math.round(Number(m[2]));
+  m = q.match(/(\d+(?:\.\d+)?)\s*g\b/i);
+  const g = m ? Number(m[1]) : Number(productQuantity);
+  return g > 0 && g <= 250 ? Math.round(g) : null;
+}
+
+// 内容量がわからないときの目安（栄養は 100 g あたりなので f = グラム / 100）
+export const NOODLE_DEFAULTS = {
+  bag: [
+    { label: '袋麺 1袋（約100g）', f: 1 },
+    { label: '袋麺 2袋（約200g）', f: 2 },
+    { label: 'カップ ミニ（約40g）', f: 0.4 },
+    { label: 'カップ 普通（約75g）', f: 0.75 },
+    { label: 'カップ ビッグ（約100g）', f: 1 },
+  ],
+  cup: [
+    { label: 'カップ ミニ（約40g）', f: 0.4 },
+    { label: 'カップ 普通（約75g）', f: 0.75 },
+    { label: 'カップ ビッグ（約100g）', f: 1 },
+    { label: '袋麺 1袋（約100g）', f: 1 },
+  ],
+  tama: [
+    { label: '1玉（約200g）', f: 2 },
+    { label: '2玉（約400g）', f: 4 },
+  ],
+};
+
+const fmtCount = (n) => (n === 0.5 ? '1/2' : String(n));
+
+/**
+ * 量の選択肢。main を大きなボタンで、more は「グラムで選ぶ」に表示する。
+ * シードや CSV 取り込みの品目は、そこで決めた選択肢をそのまま使う。
+ */
+export function optionsFor(item) {
+  const own = item.options && item.options.length ? item.options : GRAM_OPTIONS;
+  if (item.kind !== 'product' || item.source === 'seed' || item.source === 'import') return { main: own, more: [] };
+  const kind = noodleKind(item);
+  if (!kind) return { main: own, more: [] };
+  const g = item.packG;
+  const unit = { bag: '袋', cup: '個', tama: '玉' }[kind];
+  const main = g
+    ? (kind === 'bag' ? [0.5, 1, 2] : [1, 2]).map((n) => ({ label: `${fmtCount(n)}${unit}（${Math.round(g * n)}g）`, f: Math.round(g * n) / 100 }))
+    : NOODLE_DEFAULTS[kind];
+  return { main, more: GRAM_OPTIONS };
 }

@@ -5,7 +5,7 @@ import { timingLabel } from '../logic/prefs.js';
 import { entryFromItem } from '../logic/model.js';
 import { NUTRIENTS } from '../logic/nutrition.js';
 import { searchProducts } from '../off.js';
-import { itemFromOFF, productKey, GRAM_OPTIONS } from '../logic/model.js';
+import { itemFromOFF, productKey, GRAM_OPTIONS, optionsFor } from '../logic/model.js';
 
 export function render(root, { date, timing, group }) {
   const item = nav.state.item;
@@ -36,6 +36,12 @@ export function render(root, { date, timing, group }) {
     ? NUTRIENTS.filter((n) => ['kcal', 'protein', 'fat', 'carbs', 'salt'].includes(n.key)).map((n) => `${n.label} ${item.nut[n.key].toFixed(n.digits)}${n.unit}`).join(' / ')
     : '栄養はまだ取得していません（オンライン時に商品を選び直せます）';
 
+  const opts = optionsFor(item);
+  const optionButton = (o) => h('button', {
+    class: `btn option${o.label === item.lastOption ? ' last' : ''}`,
+    onclick: () => save(o),
+  }, o.label, item.nut ? h('small', null, `${Math.round(item.nut.kcal * o.f)} kcal`) : null);
+
   mount(root, 
     header(editing ? '量を変更' : `${fmtDate(date)} ${timingLabel(timing)}`, { back: editing ? `#/edit/${editing.id}` : `#/entry/${date}/${timing}/${group}` }),
     h('section', { class: 'card' },
@@ -44,10 +50,12 @@ export function render(root, { date, timing, group }) {
       h('p', { class: 'small muted' }, `${item.base || ''} あたり: ${per}`),
       item.estimated ? h('p', { class: 'small muted' }, '栄養は料理名の既定値による概算です') : null),
     h('h2', { class: 'pad' }, '量を選ぶ'),
-    h('div', { class: 'options' }, (item.options || []).map((o) => h('button', {
-      class: `btn option${o.label === item.lastOption ? ' last' : ''}`,
-      onclick: () => save(o),
-    }, o.label, item.nut ? h('small', null, `${Math.round(item.nut.kcal * o.f)} kcal`) : null))),
+    h('div', { class: 'options' }, opts.main.map(optionButton)),
+    opts.more.length
+      ? h('details', { class: 'pad more-options' },
+        h('summary', null, 'グラムで選ぶ'),
+        h('div', { class: 'options' }, opts.more.map(optionButton)))
+      : null,
   );
 }
 

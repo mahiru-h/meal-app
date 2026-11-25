@@ -31,7 +31,7 @@ async function query(terms) {
     action: 'process',
     json: '1',
     page_size: '24',
-    fields: 'code,product_name,product_name_de,product_name_en,brands,stores,nutriments,serving_quantity,product_quantity,quantity',
+    fields: 'code,product_name,product_name_de,product_name_en,brands,stores,categories_tags,nutriments,serving_quantity,product_quantity,quantity',
   });
   const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`);
   if (!res.ok) throw new Error(`Open Food Facts: ${res.status}`);
