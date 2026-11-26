@@ -40,14 +40,15 @@ export function resolveDish(dishes, dishItems, dishType, menuName) {
   const mn = String(menuName || '').trim();
   const nm = (x) => normalize(stripParen(x));
   const known = dishItems.filter((d) => !d.estimated && d.menuName);
+  const named = (d, x) => nm(d.menuName) === nm(x) || (d.alt || []).some((a) => nm(a) === nm(x));
   if (mn) {
-    const same = known.filter((d) => nm(d.menuName) === nm(mn));
+    const same = known.filter((d) => named(d, mn));
     const hit = same.find((d) => !dt || nm(d.dishType) === nm(dt)) || (!dt || !isCategoryName(dishes, dt) ? same[0] : null);
     if (hit) return hit;
     return newDishItem(dishes, isCategoryName(dishes, dt) ? dt : findCategory(dishes, dt || mn).name, mn);
   }
   if (isCategoryName(dishes, dt)) return categoryItem(dishes, dt);
-  const asMenu = known.find((d) => nm(d.menuName) === nm(dt));
+  const asMenu = known.find((d) => named(d, dt));
   if (asMenu) return asMenu;
   return newDishItem(dishes, findCategory(dishes, dt).name, dt);
 }
@@ -56,15 +57,15 @@ export function resolveDish(dishes, dishItems, dishType, menuName) {
 export function buildCatalog(dishes, foods, saved = []) {
   const map = new Map();
   for (const c of dishes.categories) {
-    const options = dishes.optionSets[c.options] || dishes.optionSets.portion;
     for (const m of c.menus) {
+      const options = dishes.optionSets[m.options || c.options] || dishes.optionSets.portion;
       const key = dishKey(c.name, m.name);
-      map.set(key, { key, kind: 'dish', dishType: c.name, menuName: m.name, name: m.name, nut: fromArray(m.nut), options, base: options.find((o) => o.f === 1)?.label || '1人前', source: 'seed' });
+      map.set(key, { key, kind: 'dish', dishType: c.name, menuName: m.name, name: m.name, alt: m.alt || [], nut: fromArray(m.nut), options, base: options.find((o) => o.f === 1)?.label || '1人前', source: 'seed' });
     }
   }
   for (const f of foods.items) {
     const key = productKey(f.name, f.seller);
-    map.set(key, { key, kind: 'product', name: f.name, seller: f.seller || '', alt: f.alt || [], nut: fromArray(f.per100), options: f.options || GRAM_OPTIONS, base: f.perLabel || '100g', source: 'seed' });
+    map.set(key, { key, kind: 'product', name: f.name, seller: f.seller || '', alt: f.alt || [], boost: f.boost || 0, nut: fromArray(f.per100), options: f.options || GRAM_OPTIONS, base: f.perLabel || '100g', source: 'seed' });
   }
   for (const it of saved) map.set(it.key, it);
   return map;

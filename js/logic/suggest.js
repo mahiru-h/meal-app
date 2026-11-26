@@ -80,11 +80,11 @@ export function rankCandidates(query, candidates, freq, limit = 8) {
     const share = (freq.counts.get(c.key) || 0) / total;
     let score;
     if (!q) {
-      score = share + (c.seed ? 0 : 0.0001);
+      score = share + (c.seed ? 0 : 0.0001) + (c.boost || 0);
     } else {
       const m = Math.max(matchScore(q, c.text), ...(c.alt || []).map((a) => matchScore(q, a)));
       if (m <= 0) continue;
-      score = m * 0.65 + Math.min(share * 2, 1) * 0.35;
+      score = m * 0.65 + Math.min(share * 2, 1) * 0.35 + (c.boost || 0);
     }
     scored.push({ ...c, share, score });
   }

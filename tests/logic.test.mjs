@@ -271,3 +271,34 @@ test('卵料理は卵の個数で選ぶ・料理名の欄の献立名も判定�
   assert.equal(resolveDish(dishes, items, 'パスタ', '和風ツナパスタ').nut.kcal, 620);
   assert.equal(resolveDish(dishes, items, 'パスタ', '').dishType, 'パスタ');
 });
+
+test('個数単位の内蔵食品とご飯の既定', () => {
+  const cat = buildCatalog(dishes, foods, []);
+  const all = [...cat.values()];
+  const products = all.filter((i) => i.kind === 'product');
+  const cands = products.map((p) => ({ key: p.key, text: p.name, alt: [p.seller, ...(p.alt || [])], item: p, seed: true, boost: p.boost }));
+  const empty = { counts: new Map(), total: 0 };
+  // 「ごはん」でサトウのごはんが先頭、電子レンジ炊飯が次
+  const rice = rankCandidates('ごはん', cands, empty);
+  assert.equal(rice[0].text, 'サトウのごはん');
+  assert.equal(rice[1].text, 'ご飯（電子レンジ炊飯）');
+  const micro = products.find((p) => p.name === 'ご飯（電子レンジ炊飯）');
+  assert.equal(Math.round(micro.nut.kcal * micro.options[0].f), 257); // 1 人前 = 0.5 合分
+  assert.equal(Math.round(micro.nut.kcal * micro.options[1].f), 515);
+  // 豆腐 450g: 半量で 1 人前
+  const tofu = products.find((p) => p.name.startsWith('豆腐'));
+  assert.equal(Math.round(tofu.nut.kcal * tofu.options[1].f), Math.round(73 * 4.5));
+  // ヨーグルト 1/4・1/3・1/2・1
+  const yog = products.find((p) => p.name.startsWith('ja! Joghurt'));
+  assert.deepEqual(yog.options.map((o) => o.label.split('（')[0]), ['1/4', '1/3', '1/2', '1個']);
+  // ソーセージは本数
+  assert.ok(products.find((p) => p.name === 'ja! Mini Wiener Würstchen').options[0].label.startsWith('1本'));
+  assert.equal(rankCandidates('ソーセージ', cands, empty).length >= 2, true);
+  // 料理名「ご飯」でも電子レンジ炊飯のご飯（0.5 合 = 1 人前）
+  const items = all.filter((i) => i.kind === 'dish');
+  const r = resolveDish(dishes, items, 'ご飯', '');
+  assert.equal(r.menuName, 'ご飯（電子レンジ炊飯）');
+  assert.equal(r.options[0].label, '1人前（0.5合分・約165g）');
+  // 全品目に量の選択肢と栄養がある
+  for (const p of products) assert.ok(p.options.length && p.nut.kcal >= 0, p.name);
+});
