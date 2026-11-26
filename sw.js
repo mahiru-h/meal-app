@@ -1,6 +1,6 @@
 // Service Worker: アプリ本体は端末にキャッシュしてオフラインでも起動できるようにする
 // アプリを更新したら VERSION を変える（js/version.js も合わせる）
-const VERSION = 'v1.1.0';
+const VERSION = 'v1.1.1';
 const CACHE = `meal-app-${VERSION}`;
 const SHELL = [
   './',
@@ -42,7 +42,11 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' でブラウザの HTTP キャッシュ（GitHub Pages は 10 分）を通さずに最新を取る。
+  // これがないと、更新直後に古いファイルを新しい版として保存してしまうことがある
+  event.waitUntil(caches.open(CACHE)
+    .then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {

@@ -88,7 +88,19 @@ export async function render(root) {
         h('button', { class: 'btn', onclick: () => fileInput.click() }, '普段よく食べるものを CSV から取り込む'),
         h('button', { class: 'btn ghost', onclick: () => shareFile('foods-template.csv', FOOD_TEMPLATE) }, '取り込み用テンプレート CSV'),
         fileInput, importLog)),
-    h('p', { class: 'pad small muted' }, `バージョン ${APP_VERSION}`,
-      window.matchMedia('(display-mode: standalone)').matches || navigator.standalone ? '' : '・Safari の共有ボタン →「ホーム画面に追加」でアプリとして使えます'),
+    h('section', { class: 'card' },
+      h('h2', null, `アプリのバージョン ${APP_VERSION}`),
+      h('p', { class: 'small muted' }, '新しい機能が表示されないときに押してください。記録は消えません（オンライン時のみ）。'),
+      h('button', {
+        class: 'btn',
+        onclick: async () => {
+          if (!navigator.onLine) return toast('オフラインです');
+          for (const r of (await navigator.serviceWorker?.getRegistrations?.()) || []) await r.unregister();
+          for (const k of await caches.keys()) await caches.delete(k);
+          location.reload();
+        },
+      }, '最新版に更新')),
+    h('p', { class: 'pad small muted' },
+      window.matchMedia('(display-mode: standalone)').matches || navigator.standalone ? '' : 'Safari の共有ボタン →「ホーム画面に追加」でアプリとして使えます'),
   );
 }
