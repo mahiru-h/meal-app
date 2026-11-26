@@ -51,7 +51,8 @@ export const TIMINGS = [
 export const timingLabel = (id) => TIMINGS.find((t) => t.id === id)?.label || id;
 
 export const GROUPS = [
-  { id: 'mensa', label: 'in Mensa', only: 'lunch' },
+  { id: 'mensa', label: 'in Mensa', only: ['lunch'] },
+  { id: 'cafe', label: 'in TU cafe（ピザ・パスタ）', only: ['lunch', 'dinner'] },
   { id: 'home', label: 'in Home' },
   { id: 'others', label: 'others（外食・パン屋・コンビニ・友人宅など）' },
 ];

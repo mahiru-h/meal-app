@@ -1,6 +1,6 @@
 // 品目（カタログ）と記録の生成（純粋関数のみ）
 import { normalize } from './suggest.js';
-import { fromArray, scale, round, JUICE, estimateMensaMain, estimateMensaSide } from './nutrition.js';
+import { fromArray, scale, round, JUICE, estimateMensaMain, estimateMensaSide, estimateCafe } from './nutrition.js';
 
 export const productKey = (name, seller) => `p:${normalize(name)}|${normalize(seller)}`;
 export const dishKey = (dishType, menuName) => `d:${normalize(dishType)}|${normalize(menuName)}`;
@@ -253,4 +253,13 @@ export function optionsFor(item) {
     ? (kind === 'bag' ? [0.5, 1, 2] : [1, 2]).map((n) => ({ label: `${fmtCount(n)}${unit}（${Math.round(g * n)}g）`, f: Math.round(g * n) / 100 }))
     : NOODLE_DEFAULTS[kind];
   return { main, more: GRAM_OPTIONS };
+}
+
+/** in TU cafe の選択 → 記録 */
+export function cafeEntries({ date, timing, items }) {
+  return items.map((m) => ({
+    id: newId(), date, timing, group: 'cafe', type: 'cafe', createdAt: Date.now(), status: 'ok',
+    name: m.title || m.name, detail: m.detail || (m.with || []).join(', '), itemKey: `cafe:${normalize(m.title || m.name)}`,
+    amountLabel: '1皿', price: m.price, nut: estimateCafe(m), cafeId: m.id,
+  }));
 }

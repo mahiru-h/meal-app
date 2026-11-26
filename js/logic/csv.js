@@ -41,7 +41,7 @@ export function parseCSV(text) {
 import { NUTRIENTS } from './nutrition.js';
 import { timingLabel } from './prefs.js';
 
-const GROUP_LABEL = { mensa: 'in Mensa', home: 'in Home', others: 'others' };
+const GROUP_LABEL = { mensa: 'in Mensa', cafe: 'in TU cafe', home: 'in Home', others: 'others' };
 
 export function entriesToCSV(entries) {
   const cols = [

@@ -167,3 +167,22 @@ export function estimateMensaSide(name) {
   for (const [re, a] of SIDE_TABLE) if (re.test(t)) return fromArray(a);
   return fromArray([150, 3, 5, 20, 2, 50, 0.6]);
 }
+
+/* ---------- in TU cafe（ピザ・パスタ）の概算 ---------- */
+
+export function estimateCafe(item) {
+  const t = [item.name, ...(item.with || [])].join(' ').toLowerCase();
+  const isPizza = item.catNo === 121 || /pizza/.test(t);
+  if (/pizza rolls|pizzabrötchen/.test(t)) return round(fromArray([450, 13, 12, 70, 4, 10, 2.0]));
+  const n = fromArray(isPizza ? [780, 32, 28, 98, 6, 60, 3.6] : [700, 22, 22, 98, 6, 80, 2.8]);
+  if (/salami|sucuk|bacon|speck/.test(t)) { n.kcal += 150; n.fat += 14; n.protein += 6; n.salt += 1.0; }
+  if (/tex mex|beef|rind/.test(t)) { n.kcal += 120; n.fat += 10; n.protein += 10; }
+  if (/chicken|pollo|geflügel/.test(t)) { n.kcal += 60; n.protein += 15; }
+  if (/cream|sahne|alfredo|carbonara|cheese sauce|käsesauce/.test(t)) { n.kcal += 150; n.fat += 14; }
+  if (/bolognese/.test(t)) { n.protein += 10; n.kcal += 60; }
+  if (/lentil|linsen/.test(t)) { n.protein += 6; n.fiber += 5; }
+  if (/pesto/.test(t)) { n.kcal += 90; n.fat += 10; }
+  if (/shrimp|gamberetti|garnelen/.test(t)) { n.protein += 10; }
+  if (/tomat|caprese|arrabiata|pomodoro|nonna|brokkoli|broccoli|zucchini|paprika|pepper|mushroom|funghi/.test(t)) { n.veg += 60; n.fiber += 1.5; }
+  return round(n);
+}

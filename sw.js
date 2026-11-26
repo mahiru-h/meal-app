@@ -1,6 +1,6 @@
 // Service Worker: アプリ本体は端末にキャッシュしてオフラインでも起動できるようにする
 // アプリを更新したら VERSION を変える（js/version.js も合わせる）
-const VERSION = 'v1.0.8';
+const VERSION = 'v1.1.0';
 const CACHE = `meal-app-${VERSION}`;
 const SHELL = [
   './',
@@ -17,6 +17,7 @@ const SHELL = [
   'js/logic/dates.js',
   'js/logic/nutrition.js',
   'js/logic/mensa.js',
+  'js/logic/cafe.js',
   'js/logic/suggest.js',
   'js/logic/recommend.js',
   'js/logic/prefs.js',
@@ -26,6 +27,7 @@ const SHELL = [
   'js/views/day.js',
   'js/views/group.js',
   'js/views/mensa.js',
+  'js/views/cafe.js',
   'js/views/entry.js',
   'js/views/amount.js',
   'js/views/edit.js',
@@ -56,7 +58,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET' || url.origin !== location.origin) return; // Open Food Facts などはそのまま
 
   // Mensa のメニューはアプリ側で IndexedDB に保存するので、ここではネットワークのみ
-  if (url.pathname.includes('/data/mensa/')) return;
+  if (url.pathname.includes('/data/mensa/') || url.pathname.includes('/data/cafe/')) return;
 
   // 画面遷移は index.html を返す
   if (req.mode === 'navigate') {

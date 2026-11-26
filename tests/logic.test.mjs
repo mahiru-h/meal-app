@@ -302,3 +302,34 @@ test('個数単位の内蔵食品とご飯の既定', () => {
   // 全品目に量の選択肢と栄養がある
   for (const p of products) assert.ok(p.options.length && p.nut.kcal >= 0, p.name);
 });
+
+import { cafeSections, splitName } from '../js/logic/cafe.js';
+import { estimateCafe } from '../js/logic/nutrition.js';
+import { cafeEntries } from '../js/logic/model.js';
+import { GROUPS } from '../js/logic/prefs.js';
+import { SOURCES } from '../scripts/mensa-lib.mjs';
+
+test('TU cafe（food fakultät）', async () => {
+  const cafeRaw = JSON.parse(await readFile(new URL('./fixtures/cafe-raw.json', import.meta.url)));
+  const src = SOURCES.find((s) => s.dir === 'cafe');
+  const day = groupByDate(cafeRaw, { categories: src.categories })['2026-11-26'];
+  // ピザ・パスタのみ、€0 のソースは除外
+  assert.equal(day.mains.length, 6);
+  // 英語名に料理名が抜けている場合はドイツ語
+  assert.ok(day.mains.some((m) => m.name === 'Aktions Pizza Kürbis Hirtenkäse'));
+  const { pizza, pasta } = cafeSections(day);
+  assert.deepEqual(pizza.slice(0, 2).map((m) => splitName(m).title), ['Pizza Caprese', 'Pizza Margherita']);
+  assert.equal(pizza.length, 4);
+  assert.equal(pasta.length, 2);
+  assert.deepEqual(splitName(pasta[0]), { title: 'Pasta Arrabiata', detail: 'Fruity tomato sauce | chili' });
+  const n = estimateCafe(pizza[0]);
+  assert.ok(n.kcal > 600 && n.veg > 0);
+  const es = cafeEntries({ date: '2026-11-26', timing: 'dinner', items: [{ ...pizza[0], ...splitName(pizza[0]) }] });
+  assert.equal(es[0].group, 'cafe');
+  assert.equal(es[0].name, 'Pizza Caprese');
+  // グループは昼食・夕食で表示、Mensa は昼食のみ
+  const show = (t) => GROUPS.filter((g) => !g.only || g.only.includes(t)).map((g) => g.id);
+  assert.deepEqual(show('lunch'), ['mensa', 'cafe', 'home', 'others']);
+  assert.deepEqual(show('dinner'), ['cafe', 'home', 'others']);
+  assert.deepEqual(show('breakfast'), ['home', 'others']);
+});

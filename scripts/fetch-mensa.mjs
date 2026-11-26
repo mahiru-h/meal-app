@@ -1,10 +1,10 @@
-// GitHub Actions から実行: Mensa のメニューを取得して data/mensa/ に週ごとに蓄積する
+// GitHub Actions から実行: Mensa と food fakultät（TU cafe）のメニューを取得して data/<店舗>/ に週ごとに蓄積する
 import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { API_URL, groupByDate, mergeDays } from './mensa-lib.mjs';
+import { apiUrl, SOURCES, groupByDate, mergeDays } from './mensa-lib.mjs';
 
-const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'mensa');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
 
 async function readJson(path, fallback) {
   try {
@@ -14,14 +14,15 @@ async function readJson(path, fallback) {
   }
 }
 
-async function main() {
+async function fetchSource({ dir, nr, categories }) {
+  const DIR = join(ROOT, dir);
   await mkdir(DIR, { recursive: true });
   const index = await readJson(join(DIR, 'index.json'), { weeks: [] });
   const now = new Date().toISOString();
 
   let raw;
   try {
-    const res = await fetch(API_URL, { headers: { Accept: 'application/json', 'User-Agent': 'meal-app (personal use)' } });
+    const res = await fetch(apiUrl(nr), { headers: { Accept: 'application/json', 'User-Agent': 'meal-app (personal use)' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     raw = await res.json();
     if (!Array.isArray(raw)) throw new Error('unexpected response');
@@ -30,11 +31,11 @@ async function main() {
     index.lastChecked = now;
     index.lastError = String(e.message || e);
     await writeFile(join(DIR, 'index.json'), JSON.stringify(index, null, 1));
-    console.error('fetch failed:', e);
+    console.error(`${dir}: fetch failed:`, e);
     return;
   }
 
-  const days = groupByDate(raw);
+  const days = groupByDate(raw, { categories });
   const weekFiles = {};
   const files = (await readdir(DIR)).filter((f) => /^\d{4}-W\d{2}\.json$/.test(f));
   for (const f of files) weekFiles[f.replace('.json', '')] = await readJson(join(DIR, f), null);
@@ -50,7 +51,7 @@ async function main() {
   index.lastChecked = now;
   delete index.lastError;
   await writeFile(join(DIR, 'index.json'), JSON.stringify(index, null, 1));
-  console.log(`items: ${raw.length}, changed weeks: ${changed.join(', ') || 'none'}`);
+  console.log(`${dir}: items ${raw.length}, changed weeks: ${changed.join(', ') || 'none'}`);
 }
 
-main();
+for (const src of SOURCES) await fetchSource(src);

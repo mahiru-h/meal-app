@@ -6,6 +6,7 @@ import * as calendar from './views/calendar.js';
 import * as day from './views/day.js';
 import * as group from './views/group.js';
 import * as mensa from './views/mensa.js';
+import * as cafe from './views/cafe.js';
 import * as entry from './views/entry.js';
 import * as amount from './views/amount.js';
 import * as edit from './views/edit.js';
@@ -19,6 +20,7 @@ const routes = [
   [new RegExp(`^day/${DATE}$`), () => day.render, ['date'], 'cal'],
   [new RegExp(`^add/${DATE}/(\\w+)$`), () => group.render, ['date', 'timing'], 'cal'],
   [new RegExp(`^mensa/${DATE}$`), () => mensa.render, ['date'], 'cal'],
+  [new RegExp(`^cafe/${DATE}/(lunch|dinner)$`), () => cafe.render, ['date', 'timing'], 'cal'],
   [/^pending\/([\w-]+)$/, () => mensa.renderPending, ['id'], 'cal'],
   [new RegExp(`^entry/${DATE}/(\\w+)/(\\w+)$`), () => entry.render, ['date', 'timing', 'group'], 'cal'],
   [new RegExp(`^amount/${DATE}/(\\w+)/(\\w+)$`), () => amount.render, ['date', 'timing', 'group'], 'cal'],

@@ -1,8 +1,14 @@
 // Mensa API の生データを、アプリで使う形に正規化する（Node から使用）
 import { germanToKey, isoWeek } from '../js/logic/dates.js';
 
-export const API_URL =
-  'https://www.stwdo.de/api/v2/speiseplan/naechste-2-wochen?verbrauchsortnr=341&limit=500';
+export const apiUrl = (nr) => `https://www.stwdo.de/api/v2/speiseplan/naechste-2-wochen?verbrauchsortnr=${nr}&limit=500`;
+export const API_URL = apiUrl(341);
+
+// 取得する店舗。categories を指定した店舗はその区分だけを使う
+export const SOURCES = [
+  { dir: 'mensa', nr: 341 }, // Hauptmensa
+  { dir: 'cafe', nr: 474, categories: [120, 121] }, // food fakultät（120 = パスタ、121 = ピザ）
+];
 
 const SIDE_CATEGORY = 116; // 'Beilagen Speiseplan'
 
@@ -52,7 +58,8 @@ export function normalizeItem(raw) {
         id: String(raw.PRODUKTIONSNUMMER),
         cat: raw.PRODUKTIONSNAME,
         catNo: raw.PRODUKTIONSARTNR,
-        name: en[0] || de[0] || raw.PRODUKTIONSBEZEICHNUNG,
+        // 英語の 1 行目に料理名が抜けていることがある（例: 'Cheese sauce' だけ）ので、そのときはドイツ語を使う
+        name: (en[0] && !(/pizza|pasta/i.test(de[0] || '') && !/pizza|pasta/i.test(en[0])) ? en[0] : de[0]) || raw.PRODUKTIONSBEZEICHNUNG,
         with: en.slice(1),
         de,
         price,
@@ -64,10 +71,12 @@ export function normalizeItem(raw) {
 }
 
 /** API 配列 → { 'YYYY-MM-DD': { mains: [], sides: [] } } */
-export function groupByDate(rawList) {
+export function groupByDate(rawList, { categories } = {}) {
   const days = {};
   for (const raw of rawList) {
     if (!raw || !raw.PRODUKTIONSDATUM) continue;
+    if (categories && !categories.includes(raw.PRODUKTIONSARTNR)) continue;
+    if (categories && !(Number(raw.VKPREISSTUD) > 0)) continue;
     const n = normalizeItem(raw);
     const day = (days[n.date] ||= { mains: [], sides: [] });
     if (n.kind === 'side') day.sides.push(...n.items);
